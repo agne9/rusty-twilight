@@ -11,9 +11,7 @@ pub const META: CommandMeta = CommandMeta {
 };
 
 pub async fn run(http: Arc<Client>, msg: Box<MessageCreate>) -> anyhow::Result<()> {
-    http.create_message(msg.channel_id)
-    .content("Pong!")
-    .await?;
+    http.create_message(msg.channel_id).content("Pong!").await?;
 
     Ok(())
 }

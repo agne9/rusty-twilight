@@ -1,7 +1,7 @@
 use std::env;
 use std::sync::Arc;
 
-use twilight_gateway::{Intents, Shard, ShardId, StreamExt as _, EventTypeFlags};
+use twilight_gateway::{EventTypeFlags, Intents, Shard, ShardId, StreamExt as _};
 use twilight_http::Client;
 use twilight_model::gateway::event::Event;
 
@@ -11,7 +11,6 @@ mod commands;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-
     default_provider()
         .install_default()
         .expect("failed to install rustls ring provider");
@@ -41,13 +40,13 @@ async fn main() -> anyhow::Result<()> {
             Err(_) => continue,
         };
 
-        match event {  
+        match event {
             Event::Ready(_) => {
                 println!("Rusty has successfully awoken!");
             }
 
             Event::MessageCreate(msg) => {
-                commands::handle_message(Arc::clone(&http), msg).await?;    
+                commands::handle_message(Arc::clone(&http), msg).await?;
             }
             _ => {} // Ignore unused events
         }
