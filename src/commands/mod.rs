@@ -13,9 +13,11 @@ pub struct CommandMeta {
 }
 
 pub const COMMANDS: &[CommandMeta] = &[
-    // Utility
     utility::ping::META,
+    utility::universe::META,
     utility::help::META,
+    moderation::purge::META,
+    moderation::permissions::META,
     // Add new commands here
 ];
 
@@ -38,9 +40,12 @@ pub async fn handle_message(http: Arc<Client>, msg: Box<MessageCreate>) -> anyho
 
     match cmd {
         "ping" => utility::ping::run(http, msg).await?,
+        "universe" => utility::universe::run(http, msg).await?,
         "help" => utility::help::run(http, msg, arg1).await?,
-        // Add new commands here
 
+        "permissions" => moderation::permissions::run(http, msg).await?,
+        "purge" => moderation::purge::run(http, msg, arg1).await?,
+        // Add new commands here
         _ => {}
     }
 

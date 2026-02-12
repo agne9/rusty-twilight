@@ -2,7 +2,7 @@ use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::gateway::payload::incoming::MessageCreate;
 
-use crate::commands::{CommandMeta, COMMANDS};
+use crate::commands::{COMMANDS, CommandMeta};
 
 pub const META: CommandMeta = CommandMeta {
     name: "help",
@@ -10,7 +10,11 @@ pub const META: CommandMeta = CommandMeta {
     category: "utility",
 };
 
-pub async fn run(http: Arc<Client>, msg: Box<MessageCreate>, category: Option<&str>) -> anyhow::Result<()> {
+pub async fn run(
+    http: Arc<Client>,
+    msg: Box<MessageCreate>,
+    category: Option<&str>,
+) -> anyhow::Result<()> {
     let mut out = String::from("**Available commands:**\n");
 
     // Collect categories from registry
@@ -24,13 +28,9 @@ pub async fn run(http: Arc<Client>, msg: Box<MessageCreate>, category: Option<&s
     if let Some(wanted) = category {
         if !categories.iter().any(|c| *c == wanted) {
             let valid = categories.join(", ");
-            let out = format!(
-                "Unknown category: {}\nValid categories: {}", wanted, valid
-            );
+            let out = format!("Unknown category: {}\nValid categories: {}", wanted, valid);
 
-            http.create_message(msg.channel_id)
-                .content(&out)
-                .await?;
+            http.create_message(msg.channel_id).content(&out).await?;
 
             return Ok(());
         }
@@ -45,7 +45,10 @@ pub async fn run(http: Arc<Client>, msg: Box<MessageCreate>, category: Option<&s
         }
 
         // Output example: "!help - Lists out all available commands. - (utility)"
-        out.push_str(&format!("!{} - {} ({})\n", cmd.name, cmd.desc, cmd.category));
+        out.push_str(&format!(
+            "!{} - {} ({})\n",
+            cmd.name, cmd.desc, cmd.category
+        ));
 
         found += 1;
     }
@@ -53,13 +56,13 @@ pub async fn run(http: Arc<Client>, msg: Box<MessageCreate>, category: Option<&s
     if found == 0 {
         out = match category {
             Some(cat) => format!("No commands found in category: {}", cat),
-            None => "No commands found at all. (This probably means something is broken)".to_string(),
+            None => {
+                "No commands found at all. (This probably means something is broken)".to_string()
+            }
         };
     }
-    
-    http.create_message(msg.channel_id)
-    .content(&out)
-    .await?;
+
+    http.create_message(msg.channel_id).content(&out).await?;
 
     Ok(())
 }

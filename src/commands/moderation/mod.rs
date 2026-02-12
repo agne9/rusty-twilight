@@ -1,1 +1,2 @@
-// For moderation commands
+pub mod permissions;
+pub mod purge;

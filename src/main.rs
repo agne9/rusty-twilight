@@ -25,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
     let http = Arc::new(Client::new(token.clone()));
 
     // Declare which intents the bot has
-    let intents = Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT;
+    let intents = Intents::GUILDS | Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT;
 
     // A shard is one Gateway WebSocket connection to Discord
     // Declare how many shards we want to be running and input our token and intents
