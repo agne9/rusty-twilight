@@ -43,7 +43,7 @@ pub async fn handle_message(http: Arc<Client>, msg: Box<MessageCreate>) -> anyho
         "universe" => utility::universe::run(http, msg).await?,
         "help" => utility::help::run(http, msg, arg1).await?,
 
-        "permissions" => moderation::permissions::run(http, msg).await?,
+        "permissions" => moderation::permissions::run(http, msg, arg1).await?,
         "purge" => moderation::purge::run(http, msg, arg1).await?,
         // Add new commands here
         _ => {}
