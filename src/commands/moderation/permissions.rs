@@ -1,9 +1,14 @@
 use std::sync::Arc;
 use twilight_http::Client;
-use twilight_model::{gateway::payload::incoming::MessageCreate, guild::Permissions};
-use twilight_util::builder::embed::{EmbedBuilder, EmbedFooterBuilder};
+use twilight_model::gateway::payload::incoming::{InteractionCreate, MessageCreate};
 
 use crate::commands::CommandMeta;
+use crate::services::permissions::{permission_names, resolve_message_author_permissions};
+use crate::ui::pagination::{
+    DEFAULT_TIMEOUT_SECS, PaginationInteractionValidation, build_paginated_list_view, clamp_page,
+    parse_one_based_page, respond_ephemeral_message, respond_update_message, total_pages,
+    validate_interaction_for_command,
+};
 
 pub const META: CommandMeta = CommandMeta {
     name: "permissions",
@@ -18,33 +23,14 @@ pub async fn run(
     msg: Box<MessageCreate>,
     arg1: Option<&str>,
 ) -> anyhow::Result<()> {
-    let perms = if let Some(perms) = msg.member.as_ref().and_then(|m| m.permissions) {
-        perms
-    } else {
-        let Some(guild_id) = msg.guild_id else {
+    let perms = match resolve_message_author_permissions(&http, &msg).await? {
+        Some(perms) => perms,
+        None => {
             http.create_message(msg.channel_id)
                 .content("This command only works in servers.")
                 .await?;
             return Ok(());
-        };
-
-        let member = http
-            .guild_member(guild_id, msg.author.id)
-            .await?
-            .model()
-            .await?;
-
-        let roles = http.roles(guild_id).await?.model().await?;
-
-        let mut resolved = Permissions::empty();
-
-        for role in roles {
-            if role.id == guild_id.cast() || member.roles.contains(&role.id) {
-                resolved |= role.permissions;
-            }
         }
-
-        resolved
     };
 
     if perms.is_empty() {
@@ -54,13 +40,7 @@ pub async fn run(
         return Ok(());
     }
 
-    let names: Vec<&str> = if perms.contains(Permissions::ADMINISTRATOR) {
-        vec!["ADMINISTRATOR"]
-    } else {
-        let mut names: Vec<&str> = perms.iter_names().map(|(name, _flag)| name).collect();
-        names.sort_unstable();
-        names
-    };
+    let names = permission_names(perms);
 
     if names.is_empty() {
         http.create_message(msg.channel_id)
@@ -69,18 +49,12 @@ pub async fn run(
         return Ok(());
     }
 
-    let total_pages = names.len().div_ceil(PERMISSIONS_PER_PAGE);
-    let requested_page = match arg1 {
-        Some(raw) => match raw.parse::<usize>() {
-            Ok(page) if page >= 1 => page,
-            _ => {
-                http.create_message(msg.channel_id)
-                    .content("Usage: !permissions [page], where page starts at 1.")
-                    .await?;
-                return Ok(());
-            }
-        },
-        None => 1,
+    let total_pages = total_pages(names.len(), PERMISSIONS_PER_PAGE);
+    let Some(requested_page) = parse_one_based_page(arg1) else {
+        http.create_message(msg.channel_id)
+            .content("Usage: !permissions [page], where page starts at 1.")
+            .await?;
+        return Ok(());
     };
 
     if requested_page > total_pages {
@@ -94,25 +68,73 @@ pub async fn run(
         return Ok(());
     }
 
-    let start = (requested_page - 1) * PERMISSIONS_PER_PAGE;
-    let end = (start + PERMISSIONS_PER_PAGE).min(names.len());
-    let description = format!("- {}", names[start..end].join("\n- "));
+    let (embed, components) = build_paginated_list_view(
+        "permissions",
+        "Your Server Permissions",
+        &names,
+        requested_page,
+        PERMISSIONS_PER_PAGE,
+        msg.author.id.get(),
+        DEFAULT_TIMEOUT_SECS,
+    )?;
 
-    let footer = EmbedFooterBuilder::new(format!(
-        "Page {}/{} • Use !permissions <page>",
-        requested_page, total_pages
-    ))
-    .build();
-
-    let embed = EmbedBuilder::new()
-        .title("Your Server Permissions")
-        .color(0x58_65_f2)
-        .description(description)
-        .footer(footer)
-        .validate()?
-        .build();
-
-    http.create_message(msg.channel_id).embeds(&[embed]).await?;
+    http.create_message(msg.channel_id)
+        .embeds(&[embed])
+        .components(&components)
+        .await?;
 
     Ok(())
+}
+
+/// Handle pagination button presses for the `permissions` command.
+pub async fn handle_pagination_interaction(
+    http: Arc<Client>,
+    interaction: Box<InteractionCreate>,
+) -> anyhow::Result<bool> {
+    let (actor_id, token) =
+        match validate_interaction_for_command(&http, &interaction, "permissions").await? {
+            PaginationInteractionValidation::NotForCommand => return Ok(false),
+            PaginationInteractionValidation::HandledInvalid => return Ok(true),
+            PaginationInteractionValidation::Valid {
+                actor_user_id,
+                token,
+            } => (actor_user_id, token),
+        };
+
+    let Some(perms) = interaction
+        .member
+        .as_ref()
+        .and_then(|member| member.permissions)
+    else {
+        respond_ephemeral_message(
+            &http,
+            &interaction,
+            "Unable to resolve member permissions for this interaction.",
+        )
+        .await?;
+        return Ok(true);
+    };
+
+    let names = permission_names(perms);
+    if names.is_empty() {
+        respond_ephemeral_message(&http, &interaction, "No permissions available for display.")
+            .await?;
+        return Ok(true);
+    }
+
+    let total_pages = total_pages(names.len(), PERMISSIONS_PER_PAGE);
+    let target_page = clamp_page(token.page, total_pages);
+    let (embed, components) = build_paginated_list_view(
+        "permissions",
+        "Your Server Permissions",
+        &names,
+        target_page,
+        PERMISSIONS_PER_PAGE,
+        actor_id,
+        DEFAULT_TIMEOUT_SECS,
+    )?;
+
+    respond_update_message(&http, &interaction, &[embed], &components).await?;
+
+    Ok(true)
 }

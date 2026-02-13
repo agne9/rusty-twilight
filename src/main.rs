@@ -8,6 +8,8 @@ use twilight_model::gateway::event::Event;
 use rustls::crypto::ring::default_provider;
 
 mod commands;
+mod services;
+mod ui;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -47,6 +49,9 @@ async fn main() -> anyhow::Result<()> {
 
             Event::MessageCreate(msg) => {
                 commands::handle_message(Arc::clone(&http), msg).await?;
+            }
+            Event::InteractionCreate(interaction) => {
+                commands::handle_interaction(Arc::clone(&http), interaction).await?;
             }
             _ => {} // Ignore unused events
         }

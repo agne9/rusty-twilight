@@ -3,7 +3,10 @@ pub mod utility;
 
 use std::sync::Arc;
 use twilight_http::Client;
-use twilight_model::gateway::payload::incoming::MessageCreate;
+use twilight_model::{
+    application::interaction::InteractionData,
+    gateway::payload::incoming::{InteractionCreate, MessageCreate},
+};
 
 // Global command meta data
 pub struct CommandMeta {
@@ -47,6 +50,25 @@ pub async fn handle_message(http: Arc<Client>, msg: Box<MessageCreate>) -> anyho
         "purge" => moderation::purge::run(http, msg, arg1).await?,
         // Add new commands here
         _ => {}
+    }
+
+    Ok(())
+}
+
+pub async fn handle_interaction(
+    http: Arc<Client>,
+    interaction: Box<InteractionCreate>,
+) -> anyhow::Result<()> {
+    let custom_id = match interaction.data.as_ref() {
+        Some(InteractionData::MessageComponent(data)) => data.custom_id.clone(),
+        _ => return Ok(()),
+    };
+
+    if custom_id.starts_with("pg:permissions:") {
+        let _handled =
+            moderation::permissions::handle_pagination_interaction(http, interaction).await?;
+    } else if custom_id.starts_with("pg:help:") {
+        let _handled = utility::help::handle_pagination_interaction(http, interaction).await?;
     }
 
     Ok(())
