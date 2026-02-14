@@ -17,7 +17,6 @@ pub struct WarningEntry {
 #[derive(Clone, Copy, Debug)]
 pub struct WarningRecord {
     pub warn_number: usize,
-    pub warned_at: u64,
 }
 
 static WARNING_LOGS: OnceLock<RwLock<HashMap<u64, Vec<WarningEntry>>>> = OnceLock::new();
@@ -46,7 +45,6 @@ pub async fn record_warning(
 
     WarningRecord {
         warn_number: entries.len(),
-        warned_at,
     }
 }
 

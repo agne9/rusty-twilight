@@ -51,14 +51,13 @@ pub async fn run(
     let reason = arg_tail.unwrap_or("No reason provided");
     let warning = record_warning(target_user_id, msg.author.id, reason).await;
     let action = format!("warned #{}", warning.warn_number);
-    let reason_with_timestamp = format!("{}\nTimestamp: <t:{}:F>", reason, warning.warned_at);
 
     send_moderation_action_embed(
         &http,
         msg.channel_id,
         target_user_id,
         &action,
-        Some(&reason_with_timestamp),
+        Some(reason),
         None,
     )
     .await?;

@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use twilight_http::Client;
-use twilight_model::{gateway::payload::incoming::MessageCreate, guild::Permissions};
-use twilight_util::builder::embed::EmbedBuilder;
+use twilight_model::{
+    gateway::payload::incoming::MessageCreate,
+    guild::Permissions,
+    id::{Id, marker::UserMarker},
+};
+use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, ImageSource};
 
 use crate::commands::CommandMeta;
 use crate::embed::embed::DEFAULT_EMBED_COLOR;
@@ -14,10 +18,15 @@ pub const META: CommandMeta = CommandMeta {
     name: "warnings",
     desc: "Show warning history for a user in a time window.",
     category: "moderation",
-    usage: "!warnings <user> [days]",
+    usage: "!warnings <user> [days|all]",
 };
 
 const DEFAULT_DAYS: u64 = 30;
+
+enum WarningWindow {
+    Days(u64),
+    All,
+}
 
 pub async fn run(
     http: Arc<Client>,
@@ -51,13 +60,20 @@ pub async fn run(
         return Ok(());
     };
 
-    let days = parse_days(arg_tail).unwrap_or(DEFAULT_DAYS);
-    let since = now_unix_secs().saturating_sub(days.saturating_mul(86_400));
+    let window = parse_window(arg_tail);
+    let (since, window_label) = match window {
+        WarningWindow::Days(days) => (
+            now_unix_secs().saturating_sub(days.saturating_mul(86_400)),
+            format!("last {} day(s)", days),
+        ),
+        WarningWindow::All => (0, "all time".to_owned()),
+    };
 
     let entries = warnings_since(target_user_id, since).await;
     let count = entries.len();
+    let (display_name, avatar_url) = fetch_target_profile(&http, target_user_id).await;
 
-    let mut description = format!("Total warnings in last {} day(s): **{}**\n\n", days, count);
+    let mut description = format!("Total warnings in {}: **{}**\n\n", window_label, count);
 
     if entries.is_empty() {
         description.push_str("No warnings in this period.");
@@ -75,28 +91,71 @@ pub async fn run(
         }
     }
 
-    let embed = EmbedBuilder::new()
-        .title(format!("Warnings for User {}", target_user_id.get()))
+    let title = format!("Warnings for {}", display_name);
+    let builder = EmbedBuilder::new()
         .color(DEFAULT_EMBED_COLOR)
-        .description(description)
-        .validate()?
-        .build();
+        .description(description);
+
+    let builder = match avatar_url {
+        Some(url) => {
+            let icon = ImageSource::url(url)?;
+            let author = EmbedAuthorBuilder::new(title).icon_url(icon).build();
+            builder.author(author)
+        }
+        None => builder.title(title),
+    };
+
+    let embed = builder.validate()?.build();
 
     http.create_message(msg.channel_id).embeds(&[embed]).await?;
 
     Ok(())
 }
 
-fn parse_days(arg_tail: Option<&str>) -> Option<u64> {
-    let raw = arg_tail?.split_whitespace().next()?;
-    let days = raw.parse::<u64>().ok()?;
-    if days == 0 {
-        return None;
+fn parse_window(arg_tail: Option<&str>) -> WarningWindow {
+    let Some(raw) = arg_tail.and_then(|value| value.split_whitespace().next()) else {
+        return WarningWindow::Days(DEFAULT_DAYS);
+    };
+
+    if raw.eq_ignore_ascii_case("all") {
+        return WarningWindow::All;
     }
 
-    Some(days)
+    let Some(days) = raw.parse::<u64>().ok().filter(|value| *value > 0) else {
+        return WarningWindow::Days(DEFAULT_DAYS);
+    };
+
+    WarningWindow::Days(days)
 }
 
 fn sanitize_reason(reason: &str) -> String {
     reason.replace('@', "@\u{200B}")
+}
+
+async fn fetch_target_profile(http: &Client, user_id: Id<UserMarker>) -> (String, Option<String>) {
+    let user = match http.user(user_id).await {
+        Ok(response) => match response.model().await {
+            Ok(model) => model,
+            Err(_) => return (format!("User {}", user_id.get()), None),
+        },
+        Err(_) => return (format!("User {}", user_id.get()), None),
+    };
+
+    let display_name = user.global_name.unwrap_or(user.name);
+    let avatar_url = Some(match user.avatar {
+        Some(avatar) => format!(
+            "https://cdn.discordapp.com/avatars/{}/{}.png?size=128",
+            user_id.get(),
+            avatar
+        ),
+        None => {
+            let default_avatar_index = (user_id.get() >> 22) % 6;
+            format!(
+                "https://cdn.discordapp.com/embed/avatars/{}.png",
+                default_avatar_index
+            )
+        }
+    });
+
+    (display_name, avatar_url)
 }
