@@ -3,7 +3,7 @@ use twilight_model::{gateway::payload::incoming::MessageCreate, guild::Permissio
 use crate::CommandMeta;
 use crate::moderation::embeds::{fetch_target_profile, moderation_action_embed};
 use rusty_core::Context;
-use rusty_database::warnings::record_warning;
+use rusty_database::impls::warnings::record_warning;
 use rusty_utils::parse::parse_target_user_id;
 use rusty_utils::permissions::has_message_permission;
 
@@ -22,7 +22,7 @@ pub async fn run(
     arg_tail: Option<&str>,
 ) -> anyhow::Result<()> {
     let http = &ctx.http;
-    let Some(_guild_id) = msg.guild_id else {
+    let Some(guild_id) = msg.guild_id else {
         http.create_message(msg.channel_id)
             .content("This command only works in servers.")
             .await?;
@@ -49,8 +49,14 @@ pub async fn run(
     };
 
     let reason = arg_tail.unwrap_or("No reason provided");
-    let warning =
-        record_warning(&ctx.db, target_user_id.get(), msg.author.id.get(), reason).await?;
+    let warning = record_warning(
+        &ctx.db,
+        guild_id.get(),
+        target_user_id.get(),
+        msg.author.id.get(),
+        reason,
+    )
+    .await?;
     let action = format!("warned #{}", warning.warn_number);
 
     let target_profile = fetch_target_profile(http, target_user_id).await;

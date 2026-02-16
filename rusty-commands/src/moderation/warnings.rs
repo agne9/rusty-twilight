@@ -6,7 +6,7 @@ use crate::moderation::embeds::{
     warnings_overview_embed, warnings_window_label_days,
 };
 use rusty_core::Context;
-use rusty_database::warnings::{now_unix_secs, warnings_since};
+use rusty_database::impls::warnings::{now_unix_secs, warnings_since};
 use rusty_utils::parse::parse_target_user_id;
 use rusty_utils::permissions::has_message_permission;
 
@@ -32,7 +32,7 @@ pub async fn run(
     arg_tail: Option<&str>,
 ) -> anyhow::Result<()> {
     let http = &ctx.http;
-    let Some(_guild_id) = msg.guild_id else {
+    let Some(guild_id) = msg.guild_id else {
         http.create_message(msg.channel_id)
             .content(guild_only_message())
             .await?;
@@ -67,7 +67,7 @@ pub async fn run(
         WarningWindow::All => (0, "all time".to_owned()),
     };
 
-    let entries = warnings_since(&ctx.db, target_user_id.get(), since).await?;
+    let entries = warnings_since(&ctx.db, guild_id.get(), target_user_id.get(), since).await?;
     let target_profile = fetch_target_profile(http, target_user_id).await;
     let embed = warnings_overview_embed(&target_profile, &window_label, &entries)?;
 
