@@ -49,7 +49,8 @@ pub async fn run(
     };
 
     let reason = arg_tail.unwrap_or("No reason provided");
-    let warning = record_warning(target_user_id.get(), msg.author.id.get(), reason).await;
+    let warning =
+        record_warning(&ctx.db, target_user_id.get(), msg.author.id.get(), reason).await?;
     let action = format!("warned #{}", warning.warn_number);
 
     let target_profile = fetch_target_profile(http, target_user_id).await;

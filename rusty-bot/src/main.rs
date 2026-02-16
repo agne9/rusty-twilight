@@ -7,9 +7,11 @@ use twilight_http::Client;
 use twilight_model::gateway::event::Event;
 
 use rustls::crypto::ring::default_provider;
+use sqlx::postgres::PgPoolOptions;
 
 use rusty_commands::{handle_interaction, handle_message};
 use rusty_core::Context;
+use rusty_database::Database;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -24,10 +26,17 @@ async fn main() -> anyhow::Result<()> {
 
     // Store Discord Bot Token
     let token = env::var("DISCORD_TOKEN")?;
+    let database_url = env::var("DATABASE_URL")?;
 
     // Create a single shared HTTP Client
     let http = Arc::new(Client::new(token.clone()));
-    let ctx = Context::new(Arc::clone(&http));
+    let db_pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await?;
+    info!("PostgreSQL connection established.");
+    let db = Database::new(db_pool);
+    let ctx = Context::new(Arc::clone(&http), db);
 
     // Declare which intents the bot has
     let intents = Intents::GUILDS | Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT;

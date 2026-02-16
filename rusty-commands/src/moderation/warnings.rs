@@ -67,7 +67,7 @@ pub async fn run(
         WarningWindow::All => (0, "all time".to_owned()),
     };
 
-    let entries = warnings_since(target_user_id.get(), since).await;
+    let entries = warnings_since(&ctx.db, target_user_id.get(), since).await?;
     let target_profile = fetch_target_profile(http, target_user_id).await;
     let embed = warnings_overview_embed(&target_profile, &window_label, &entries)?;
 
