@@ -6,8 +6,8 @@ use twilight_model::{
     gateway::payload::incoming::{InteractionCreate, MessageCreate},
 };
 
-use crate::context::Context;
-use crate::util::COMMAND_PREFIX;
+use rusty_core::Context;
+use rusty_utils::COMMAND_PREFIX;
 
 #[derive(Clone, Copy)]
 enum InteractionRoute {

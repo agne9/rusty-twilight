@@ -1,0 +1,15 @@
+[package]
+name = "rusty-commands"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+twilight-http = { workspace = true }
+twilight-model = { workspace = true }
+twilight-util = { workspace = true }
+rusty-core = { workspace = true }
+rusty-database = { workspace = true }
+rusty-utils = { workspace = true }

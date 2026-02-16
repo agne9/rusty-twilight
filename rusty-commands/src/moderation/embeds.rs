@@ -2,8 +2,8 @@ use twilight_http::Client;
 use twilight_model::{channel::message::embed::Embed, id::Id, id::marker::UserMarker};
 use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, ImageSource};
 
-use crate::database::warnings::WarningEntry;
-use crate::util::embed::DEFAULT_EMBED_COLOR;
+use rusty_database::warnings::WarningEntry;
+use rusty_utils::embed::DEFAULT_EMBED_COLOR;
 
 /// Build a moderation action-result embed.
 ///

@@ -6,9 +6,9 @@ use twilight_model::{
     id::{Id, marker::MessageMarker},
 };
 
-use crate::commands::CommandMeta;
-use crate::context::Context;
-use crate::util::permissions::has_message_permission;
+use crate::CommandMeta;
+use rusty_core::Context;
+use rusty_utils::permissions::has_message_permission;
 
 pub const META: CommandMeta = CommandMeta {
     name: "purge",

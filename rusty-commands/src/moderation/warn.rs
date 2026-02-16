@@ -1,11 +1,11 @@
 use twilight_model::{gateway::payload::incoming::MessageCreate, guild::Permissions};
 
-use crate::commands::CommandMeta;
-use crate::commands::moderation::embeds::{fetch_target_profile, moderation_action_embed};
-use crate::context::Context;
-use crate::database::warnings::record_warning;
-use crate::util::parse::parse_target_user_id;
-use crate::util::permissions::has_message_permission;
+use crate::CommandMeta;
+use crate::moderation::embeds::{fetch_target_profile, moderation_action_embed};
+use rusty_core::Context;
+use rusty_database::warnings::record_warning;
+use rusty_utils::parse::parse_target_user_id;
+use rusty_utils::permissions::has_message_permission;
 
 pub const META: CommandMeta = CommandMeta {
     name: "warn",

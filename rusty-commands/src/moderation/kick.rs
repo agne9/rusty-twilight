@@ -2,20 +2,20 @@ use tracing::error;
 use twilight_http::request::AuditLogReason as _;
 use twilight_model::{gateway::payload::incoming::MessageCreate, guild::Permissions};
 
-use crate::commands::CommandMeta;
-use crate::commands::moderation::embeds::{fetch_target_profile, moderation_action_embed};
-use crate::context::Context;
-use crate::util::parse::parse_target_user_id;
-use crate::util::permissions::has_message_permission;
+use crate::CommandMeta;
+use crate::moderation::embeds::{fetch_target_profile, moderation_action_embed};
+use rusty_core::Context;
+use rusty_utils::parse::parse_target_user_id;
+use rusty_utils::permissions::has_message_permission;
 
 pub const META: CommandMeta = CommandMeta {
-    name: "untimeout",
-    desc: "Remove timeout from a user.",
+    name: "kick",
+    desc: "Kick a user from the server.",
     category: "moderation",
-    usage: "!untimeout <user> [reason]",
+    usage: "!kick <user> [reason]",
 };
 
-/// Remove an active timeout from a target user.
+/// Kick a target user after permission and input validation.
 pub async fn run(
     ctx: Context,
     msg: Box<MessageCreate>,
@@ -30,7 +30,7 @@ pub async fn run(
         return Ok(());
     };
 
-    if !has_message_permission(http, &msg, Permissions::MODERATE_MEMBERS).await? {
+    if !has_message_permission(http, &msg, Permissions::KICK_MEMBERS).await? {
         http.create_message(msg.channel_id)
             .content("You are not permitted to use this command.")
             .await?;
@@ -49,29 +49,28 @@ pub async fn run(
         return Ok(());
     };
 
-    let mut request = http
-        .update_guild_member(guild_id, target_user_id)
-        .communication_disabled_until(None);
+    if target_user_id == msg.author.id {
+        http.create_message(msg.channel_id)
+            .content("You can't kick yourself.")
+            .await?;
+        return Ok(());
+    }
+
+    let mut request = http.remove_guild_member(guild_id, target_user_id);
     if let Some(reason) = arg_tail {
         request = request.reason(reason);
     }
 
     if let Err(source) = request.await {
-        error!(?source, "untimeout request failed");
+        error!(?source, "kick request failed");
         http.create_message(msg.channel_id)
-            .content("I couldn't remove timeout from that user. Check permissions.")
+            .content("I couldn't kick that user. Check role hierarchy and permissions.")
             .await?;
         return Ok(());
     }
 
     let target_profile = fetch_target_profile(http, target_user_id).await;
-    let embed = moderation_action_embed(
-        &target_profile,
-        target_user_id,
-        "untimed out",
-        arg_tail,
-        None,
-    )?;
+    let embed = moderation_action_embed(&target_profile, target_user_id, "kicked", arg_tail, None)?;
     http.create_message(msg.channel_id).embeds(&[embed]).await?;
 
     Ok(())

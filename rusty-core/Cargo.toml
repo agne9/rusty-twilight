@@ -1,0 +1,7 @@
+[package]
+name = "rusty-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+twilight-http = { workspace = true }

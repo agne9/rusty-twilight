@@ -3,7 +3,7 @@
 use twilight_model::channel::message::component::Component;
 use twilight_model::channel::message::embed::Embed;
 
-use crate::util::embed::{build_paginated_embed, build_paginated_embed_with_footer_note};
+use crate::embed::{build_paginated_embed, build_paginated_embed_with_footer_note};
 
 use super::components::build_nav_components;
 use super::page::{clamp_page, paginated_bulleted_description, total_pages};

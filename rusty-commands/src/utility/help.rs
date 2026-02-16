@@ -1,13 +1,13 @@
 use std::sync::Arc;
 use twilight_model::gateway::payload::incoming::{InteractionCreate, MessageCreate};
 
-use crate::commands::utility::embeds::{
+use crate::utility::embeds::{
     grouped_help_description, no_commands_message, page_out_of_range_message,
     unknown_category_message,
 };
-use crate::commands::{COMMANDS, CommandMeta};
-use crate::context::Context;
-use crate::util::pagination::{
+use crate::{COMMANDS, CommandMeta};
+use rusty_core::Context;
+use rusty_utils::pagination::{
     DEFAULT_TIMEOUT_SECS, PaginationInteractionValidation, PaginationModalSubmitValidation,
     build_paginated_view, build_paginated_view_with_footer_note, clamp_page,
     open_jump_modal_from_token, page_window, resolve_modal_target_page, send_paginated_message,

@@ -1,7 +1,7 @@
 use twilight_model::gateway::payload::incoming::MessageCreate;
 
-use crate::commands::CommandMeta;
-use crate::context::Context;
+use crate::CommandMeta;
+use rusty_core::Context;
 
 pub const META: CommandMeta = CommandMeta {
     name: "ping",

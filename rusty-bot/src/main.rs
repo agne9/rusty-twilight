@@ -8,12 +8,8 @@ use twilight_model::gateway::event::Event;
 
 use rustls::crypto::ring::default_provider;
 
-mod commands;
-mod context;
-mod database;
-mod util;
-
-use crate::context::Context;
+use rusty_commands::{handle_interaction, handle_message};
+use rusty_core::Context;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -58,10 +54,10 @@ async fn main() -> anyhow::Result<()> {
             }
 
             Event::MessageCreate(msg) => {
-                commands::handle_message(ctx.clone(), msg).await?;
+                handle_message(ctx.clone(), msg).await?;
             }
             Event::InteractionCreate(interaction) => {
-                commands::handle_interaction(ctx.clone(), interaction).await?;
+                handle_interaction(ctx.clone(), interaction).await?;
             }
             _ => {} // Ignore unused events
         }

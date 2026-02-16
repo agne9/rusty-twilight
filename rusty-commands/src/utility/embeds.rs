@@ -1,4 +1,4 @@
-use crate::commands::CommandMeta;
+use crate::CommandMeta;
 
 pub fn unknown_category_message(wanted_category: &str, valid_categories: &[&str]) -> String {
     let valid = valid_categories

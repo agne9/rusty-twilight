@@ -1,14 +1,14 @@
 use twilight_model::{gateway::payload::incoming::MessageCreate, guild::Permissions};
 
-use crate::commands::CommandMeta;
-use crate::commands::moderation::embeds::{
+use crate::CommandMeta;
+use crate::moderation::embeds::{
     fetch_target_profile, guild_only_message, permission_denied_message, usage_message,
     warnings_overview_embed, warnings_window_label_days,
 };
-use crate::context::Context;
-use crate::database::warnings::{now_unix_secs, warnings_since};
-use crate::util::parse::parse_target_user_id;
-use crate::util::permissions::has_message_permission;
+use rusty_core::Context;
+use rusty_database::warnings::{now_unix_secs, warnings_since};
+use rusty_utils::parse::parse_target_user_id;
+use rusty_utils::permissions::has_message_permission;
 
 pub const META: CommandMeta = CommandMeta {
     name: "warnings",

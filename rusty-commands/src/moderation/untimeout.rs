@@ -1,22 +1,21 @@
 use tracing::error;
+use twilight_http::request::AuditLogReason as _;
 use twilight_model::{gateway::payload::incoming::MessageCreate, guild::Permissions};
 
-use crate::commands::CommandMeta;
-use crate::commands::moderation::embeds::{fetch_target_profile, moderation_action_embed};
-use crate::context::Context;
-use crate::util::parse::parse_target_user_id;
-use crate::util::permissions::has_message_permission;
-
-use twilight_http::request::AuditLogReason as _;
+use crate::CommandMeta;
+use crate::moderation::embeds::{fetch_target_profile, moderation_action_embed};
+use rusty_core::Context;
+use rusty_utils::parse::parse_target_user_id;
+use rusty_utils::permissions::has_message_permission;
 
 pub const META: CommandMeta = CommandMeta {
-    name: "unban",
-    desc: "Unban a user from the server.",
+    name: "untimeout",
+    desc: "Remove timeout from a user.",
     category: "moderation",
-    usage: "!unban <user> [reason]",
+    usage: "!untimeout <user> [reason]",
 };
 
-/// Remove an active ban for a target user.
+/// Remove an active timeout from a target user.
 pub async fn run(
     ctx: Context,
     msg: Box<MessageCreate>,
@@ -31,7 +30,7 @@ pub async fn run(
         return Ok(());
     };
 
-    if !has_message_permission(http, &msg, Permissions::BAN_MEMBERS).await? {
+    if !has_message_permission(http, &msg, Permissions::MODERATE_MEMBERS).await? {
         http.create_message(msg.channel_id)
             .content("You are not permitted to use this command.")
             .await?;
@@ -50,22 +49,29 @@ pub async fn run(
         return Ok(());
     };
 
-    let mut request = http.delete_ban(guild_id, target_user_id);
+    let mut request = http
+        .update_guild_member(guild_id, target_user_id)
+        .communication_disabled_until(None);
     if let Some(reason) = arg_tail {
         request = request.reason(reason);
     }
 
     if let Err(source) = request.await {
-        error!(?source, "unban request failed");
+        error!(?source, "untimeout request failed");
         http.create_message(msg.channel_id)
-            .content("I couldn't unban that user. They may not be banned, or I lack permissions.")
+            .content("I couldn't remove timeout from that user. Check permissions.")
             .await?;
         return Ok(());
     }
 
     let target_profile = fetch_target_profile(http, target_user_id).await;
-    let embed =
-        moderation_action_embed(&target_profile, target_user_id, "unbanned", arg_tail, None)?;
+    let embed = moderation_action_embed(
+        &target_profile,
+        target_user_id,
+        "untimed out",
+        arg_tail,
+        None,
+    )?;
     http.create_message(msg.channel_id).embeds(&[embed]).await?;
 
     Ok(())
