@@ -63,6 +63,30 @@ pub async fn respond_update_message(
     Ok(())
 }
 
+/// Respond to a component interaction with an in-place content update.
+pub async fn respond_update_content_message(
+    http: &Client,
+    interaction: &InteractionCreate,
+    content: &str,
+    components: &[Component],
+) -> anyhow::Result<()> {
+    let response = InteractionResponse {
+        kind: InteractionResponseType::UpdateMessage,
+        data: Some(
+            InteractionResponseDataBuilder::new()
+                .content(content)
+                .components(components.to_vec())
+                .build(),
+        ),
+    };
+
+    http.interaction(interaction.application_id)
+        .create_response(interaction.id, &interaction.token, &response)
+        .await?;
+
+    Ok(())
+}
+
 /// Respond to a component interaction with an ephemeral message.
 pub async fn respond_ephemeral_message(
     http: &Client,

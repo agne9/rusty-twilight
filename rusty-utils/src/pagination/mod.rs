@@ -19,8 +19,8 @@ pub use page::{
     clamp_page, page_window, parse_one_based_page, resolve_modal_target_page, total_pages,
 };
 pub use respond::{
-    open_jump_modal_from_token, respond_ephemeral_message, send_paginated_message,
-    update_paginated_interaction_message,
+    open_jump_modal_from_token, respond_ephemeral_message, respond_update_content_message,
+    send_paginated_message, update_paginated_interaction_message,
 };
 pub use view::{
     build_paginated_list_view, build_paginated_view, build_paginated_view_with_footer_note,

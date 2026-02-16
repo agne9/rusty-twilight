@@ -1,10 +1,9 @@
 //! Pagination UI component builders (previous/next buttons).
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use twilight_model::channel::message::component::{ActionRow, Button, ButtonStyle, Component};
 
 use super::token::build_custom_id;
+use crate::time::now_unix_secs;
 
 /// Build previous/next button components for a paginated message.
 pub fn build_nav_components(
@@ -94,10 +93,4 @@ pub fn build_nav_components(
             Component::Button(next_button),
         ],
     })]
-}
-
-fn now_unix_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs())
 }

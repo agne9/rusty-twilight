@@ -1,6 +1,6 @@
 //! Stateless pagination token encoding, parsing, and validation.
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::time::now_unix_secs;
 
 const TOKEN_PREFIX: &str = "pg";
 const MODAL_TOKEN_PREFIX: &str = "pgm";
@@ -157,10 +157,4 @@ pub fn parse_modal_custom_id(custom_id: &str) -> Option<PaginationModalToken> {
 /// Whether the provided unix timestamp is already expired.
 pub fn is_expired(expires_at: u64) -> bool {
     now_unix_secs() > expires_at
-}
-
-fn now_unix_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs())
 }

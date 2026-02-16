@@ -3,6 +3,7 @@ mod embeds;
 pub mod kick;
 pub mod permissions;
 pub mod purge;
+pub mod terminate;
 pub mod timeout;
 pub mod unban;
 pub mod untimeout;

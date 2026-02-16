@@ -14,16 +14,18 @@ enum InteractionRoute {
     PermissionsButtons,
     HelpButtons,
     PagetestButtons,
+    TerminateButtons,
     PermissionsModal,
     HelpModal,
     PagetestModal,
 }
 
 fn route_interaction(custom_id: &str) -> Option<InteractionRoute> {
-    const ROUTES: [(&str, InteractionRoute); 6] = [
+    const ROUTES: [(&str, InteractionRoute); 7] = [
         ("pg:permissions:", InteractionRoute::PermissionsButtons),
         ("pg:help", InteractionRoute::HelpButtons),
         ("pg:pagetest:", InteractionRoute::PagetestButtons),
+        ("terminate:", InteractionRoute::TerminateButtons),
         ("pgm:permissions:", InteractionRoute::PermissionsModal),
         ("pgm:help", InteractionRoute::HelpModal),
         ("pgm:pagetest:", InteractionRoute::PagetestModal),
@@ -57,6 +59,7 @@ pub const COMMANDS: &[CommandMeta] = &[
     moderation::warnings::META,
     moderation::purge::META,
     moderation::permissions::META,
+    moderation::terminate::META,
     // Add new commands here
 ];
 
@@ -117,6 +120,7 @@ pub async fn handle_message(ctx: Context, msg: Box<MessageCreate>) -> anyhow::Re
         "warnings" => moderation::warnings::run(ctx.clone(), msg, arg1, arg_tail).await?,
         "permissions" => moderation::permissions::run(ctx.clone(), msg, arg1).await?,
         "purge" => moderation::purge::run(ctx.clone(), msg, arg1).await?,
+        "terminate" => moderation::terminate::run(ctx.clone(), msg, arg1, arg_tail).await?,
         // Add new commands here
         _ => {}
     }
@@ -151,6 +155,10 @@ pub async fn handle_interaction(
         InteractionRoute::PagetestButtons => {
             let _handled =
                 utility::pagetest::handle_pagination_interaction(ctx.clone(), interaction).await?;
+        }
+        InteractionRoute::TerminateButtons => {
+            let _handled =
+                moderation::terminate::handle_interaction(ctx.clone(), interaction).await?;
         }
         InteractionRoute::PermissionsModal => {
             let _handled = moderation::permissions::handle_pagination_modal_interaction(

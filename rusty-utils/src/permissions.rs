@@ -1,5 +1,8 @@
 use twilight_http::Client;
-use twilight_model::{gateway::payload::incoming::MessageCreate, guild::Permissions};
+use twilight_model::{
+    gateway::payload::incoming::{InteractionCreate, MessageCreate},
+    guild::Permissions,
+};
 
 /// Convert a permission bitset into a sorted display list.
 ///
@@ -65,4 +68,20 @@ pub async fn has_message_permission(
     };
 
     Ok(perms.contains(Permissions::ADMINISTRATOR) || perms.contains(required))
+}
+
+/// Check whether an interaction member has required permissions (or administrator).
+pub fn check_interaction_permissions(
+    interaction: &InteractionCreate,
+    required: Permissions,
+) -> bool {
+    let Some(perms) = interaction
+        .member
+        .as_ref()
+        .and_then(|member| member.permissions)
+    else {
+        return false;
+    };
+
+    perms.contains(Permissions::ADMINISTRATOR) || perms.contains(required)
 }
